@@ -221,7 +221,6 @@ struct Linear {
     for (idx_t i = 0; i < m; i++) {
       for (idx_t j = 0; j < N; j++) {
         real v = 0.0;
-        #pragma omp parallel for collapse(3) reduction(+ : v)
         for (idx_t k0 = 0; k0 < K0; k0++) {
           for (idx_t k1 = 0; k1 < K1; k1++) {
             for (idx_t k2 = 0; k2 < K2; k2++) {
@@ -381,7 +380,6 @@ struct Linear {
         for (idx_t k2 = 0; k2 < K2; k2++) {
           for (idx_t j = 0; j < N; j++) {
             real v = 0.0;
-            #pragma omp parallel for reduction(+ : v)
             for (idx_t i = 0; i < m; i++) {
               v += gy(i,j) * x(i,k0,k1,k2);
             }
@@ -393,7 +391,6 @@ struct Linear {
     #pragma omp parallel for schedule(static)
     for (idx_t j = 0; j < N; j++) {
       real v = 0.0;
-      #pragma omp parallel for reduction(+ : v)
       for (idx_t i = 0; i < m; i++) {
         v += gy(i, j);
       }
@@ -405,7 +402,6 @@ struct Linear {
         for (idx_t k1 = 0; k1 < K1; k1++) {
           for (idx_t k2 = 0; k2 < K2; k2++) {
             real v = 0.0;
-            #pragma omp parallel for reduction(+ : v)
             for (idx_t j = 0; j < N; j++) {
               v += gy(i,j) * w(k0,k1,k2,j);
             }

@@ -237,7 +237,6 @@ struct Convolution2D {
           for (idx_t j = 0; j < W - K + 1; j++) { // for each output pixel
             // calculate a single output pixel
             real v = 0.0;
-            #pragma omp parallel for collapse(3) reduction(+ : v)
             for (idx_t ic = 0; ic < IC; ic++) { // input channel
               for (idx_t di = 0; di < K; di++) {
                 for (idx_t dj = 0; dj < K; dj++) {
@@ -414,7 +413,6 @@ struct Convolution2D {
         for (idx_t di = 0; di < K; di++) { // kernel pixel
           for (idx_t dj = 0; dj < K; dj++) { // kernel pixel
             real v = 0.0;
-            #pragma omp parallel for collapse(3) reduction(+ : v)
             for (idx_t s = 0; s < B; s++) { // training samples
               for (idx_t i = 0; i < H - K + 1; i++) { // sample pixel
                 for (idx_t j = 0; j < W - K + 1; j++) { // sample pixel
@@ -430,7 +428,6 @@ struct Convolution2D {
     #pragma omp parallel for
     for (idx_t oc = 0; oc < OC; oc++) {
       real v = 0.0;
-      #pragma omp parallel for collapse(3) reduction(+ : v)
       for (idx_t s = 0; s < B; s++) {
         for (idx_t i = 0; i < H - K + 1; i++) {
           for (idx_t j = 0; j < W - K + 1; j++) {
@@ -446,7 +443,6 @@ struct Convolution2D {
         for (idx_t i = 0; i < H; i++) {
           for (idx_t j = 0; j < W; j++) {
             real v = 0.0;
-            #pragma omp parallel for collapse(3) reduction(+ : v)
             for (idx_t oc = 0; oc < OC; oc++) {
               for (idx_t di = 0; di < K; di++) {
                 for (idx_t dj = 0; dj < K; dj++) {
