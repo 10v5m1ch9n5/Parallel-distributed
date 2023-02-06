@@ -26,8 +26,9 @@
 #   for specific compilers
 #
 vers :=
-vers += cpu_base
-vers += cuda_base
+#vers += cpu_base
+#vers += cuda_base
+vers += cpu_omp
 #vers += fast
 
 #
@@ -95,7 +96,7 @@ nvcc_ldflags :=
 
 cpu_base_cxx := clang++
 cuda_base_cxx := nvcc
-fast_cxx := clang++
+cpu_omp_cxx := clang++
 
 #
 # toplevel C++ file of each version
@@ -104,7 +105,7 @@ fast_cxx := clang++
 
 cpu_base_cc := mnist.cc
 cuda_base_cc := mnist.cc
-fast_cc := mnist.cc
+cpu_omp_cc := mnist.cc
 
 #
 # version-specific flags
@@ -116,7 +117,7 @@ cpu_base_ldflags :=
 cuda_base_flags := 
 cuda_base_ldflags := 
 
-fast_flags := 
+cpu_omp_flags := -DCPUOMP
 fast_ldflags := 
 
 #
@@ -144,17 +145,9 @@ cuda_base_nvc++_ldflags   :=
 cuda_base_nvcc_flags    :=
 cuda_base_nvcc_ldflags    :=
 
-fast_g++_flags     :=
-fast_g++_ldflags     :=
-
-fast_clang++_flags :=
-fast_clang++_ldflags :=
-
-fast_nvc++_flags   :=
-fast_nvc++_ldflags   :=
-
-fast_nvcc_flags    :=
-fast_nvcc_ldflags    :=
+cpu_omp_clang++_flags := -fopenmp
+cpu_omp_nvcc_flags := -mp
+cpu_omp_nvc++_flags := -mp
 
 #
 # you are unlikely to change anything below

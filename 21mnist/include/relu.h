@@ -8,6 +8,8 @@
 #include "tensor.h"
 #include "grad_check.h"
 
+#include <omp.h>
+
 /**
    @brief configuration data for Relu
    @details no configuration currently exist
@@ -206,6 +208,23 @@ struct Relu {
       }
     }
   }
+  
+  void backward_cpu_omp(tensor<real,N0,N1,N2,N3>& gy) {
+    const idx_t n0 = gy.n0;
+    gx.set_n0(n0);
+    tensor<real,N0,N1,N2,N3>& x = *x_ptr;
+    #pragma omp parallel for schedule(static),collapse(4)
+    for (idx_t i0 = 0; i0 < n0; i0++) {
+      for (idx_t i1 = 0; i1 < N1; i1++) {
+        for (idx_t i2 = 0; i2 < N2; i2++) {
+          for (idx_t i3 = 0; i3 < N3; i3++) {
+            gx(i0,i1,i2,i3) = (x(i0,i1,i2,i3) >= 0 ? gy(i0,i1,i2,i3) : 0);
+          }
+        }
+      }
+    }
+  }
+  
   /**
      @brief the device function of backward called from the 
      global (non-member) function
@@ -271,6 +290,8 @@ struct Relu {
       backward_cpu_base(gy); break;
     case algo_cuda_base:
       backward_cuda_base(gy); break;
+    case algo_cpu_omp:
+      backward_cpu_omp(gy); break;
     default:
       if (opt.cuda_algo) {
         backward_cuda_base(gy);

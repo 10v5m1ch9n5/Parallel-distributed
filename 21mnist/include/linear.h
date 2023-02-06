@@ -10,6 +10,8 @@
 #include "ada_delta.h"
 #include "grad_check.h"
 
+#include <omp.h>
+
 /**
    @brief configuration data for Linear
    @details no configuration currently exist
@@ -209,6 +211,29 @@ struct Linear {
       }
     }
   }
+  
+  void forward_cpu_omp(tensor<real,M,K0,K1,K2>& x, int training) {
+    (void)training;
+    const idx_t m = x.n0;
+    y.set_n0(m);
+    x_ptr = &x;
+    #pragma omp parallel for schedule(dynamic),collapse(2)
+    for (idx_t i = 0; i < m; i++) {
+      for (idx_t j = 0; j < N; j++) {
+        real v = 0.0;
+        #pragma omp parallel for collapse(3) reduction(+ : v)
+        for (idx_t k0 = 0; k0 < K0; k0++) {
+          for (idx_t k1 = 0; k1 < K1; k1++) {
+            for (idx_t k2 = 0; k2 < K2; k2++) {
+              v += x(i,k0,k1,k2) * w(k0,k1,k2,j);
+            }
+          }
+        }
+        y(i,j) = v + b(j);
+      }
+    }
+  }
+  
   /**
      @brief the device function of forward called from the 
      global (non-member) function
@@ -274,6 +299,8 @@ struct Linear {
       forward_cpu_base(x, training); break;
     case algo_cuda_base:
       forward_cuda_base(x, training); break;
+    case algo_cpu_omp:
+      forward_cpu_omp(x, training); break;
     default:
       if (opt.cuda_algo) {
         forward_cuda_base(x, training);
@@ -341,6 +368,54 @@ struct Linear {
       }
     }
   }
+  
+  void backward_cpu_omp(tensor<real,M,N>& gy) {
+    const idx_t m = gy.n0;
+    gw.set_n0(K0);
+    gb.set_n0(N);
+    gx.set_n0(m);
+    tensor<real,M,K0,K1,K2>& x = *x_ptr;
+    #pragma omp parallel for schedule(static),collapse(4)
+    for (idx_t k0 = 0; k0 < K0; k0++) {
+      for (idx_t k1 = 0; k1 < K1; k1++) {
+        for (idx_t k2 = 0; k2 < K2; k2++) {
+          for (idx_t j = 0; j < N; j++) {
+            real v = 0.0;
+            #pragma omp parallel for reduction(+ : v)
+            for (idx_t i = 0; i < m; i++) {
+              v += gy(i,j) * x(i,k0,k1,k2);
+            }
+            gw(k0,k1,k2,j) = v;
+          }
+        }
+      }
+    }
+    #pragma omp parallel for schedule(static)
+    for (idx_t j = 0; j < N; j++) {
+      real v = 0.0;
+      #pragma omp parallel for reduction(+ : v)
+      for (idx_t i = 0; i < m; i++) {
+        v += gy(i, j);
+      }
+      gb(j) = v;
+    }
+    #pragma omp parallel for schedule(static),collapse(4)
+    for (idx_t i = 0; i < m; i++) {
+      for (idx_t k0 = 0; k0 < K0; k0++) {
+        for (idx_t k1 = 0; k1 < K1; k1++) {
+          for (idx_t k2 = 0; k2 < K2; k2++) {
+            real v = 0.0;
+            #pragma omp parallel for reduction(+ : v)
+            for (idx_t j = 0; j < N; j++) {
+              v += gy(i,j) * w(k0,k1,k2,j);
+            }
+            gx(i,k0,k1,k2) = v;
+          }
+        }
+      }
+    }
+  }
+  
   /**
      @brief the device function of backward called from the 
      global (non-member) function
@@ -406,6 +481,8 @@ struct Linear {
       backward_cpu_base(gy); break;
     case algo_cuda_base:
       backward_cuda_base(gy); break;
+    case algo_cpu_omp:
+      backward_cpu_omp(gy); break;
     default:
       if (opt.cuda_algo) {
         backward_cuda_base(gy);
