@@ -28,8 +28,8 @@
 vers :=
 #vers += cpu_base
 #vers += cuda_base
-vers += cpu_omp
-#vers += fast
+#vers += cpu_omp
+vers += cpu_simd
 
 #
 # C++ compiler flags
@@ -97,6 +97,7 @@ nvcc_ldflags :=
 cpu_base_cxx := clang++
 cuda_base_cxx := nvcc
 cpu_omp_cxx := clang++
+cpu_simd_cxx := clang++
 
 #
 # toplevel C++ file of each version
@@ -106,6 +107,7 @@ cpu_omp_cxx := clang++
 cpu_base_cc := mnist.cc
 cuda_base_cc := mnist.cc
 cpu_omp_cc := mnist.cc
+cpu_simd_cc := mnist.cc
 
 #
 # version-specific flags
@@ -117,8 +119,10 @@ cpu_base_ldflags :=
 cuda_base_flags := 
 cuda_base_ldflags := 
 
-cpu_omp_flags := -DCPUOMP
+cpu_omp_flags :=
 fast_ldflags := 
+
+cpu_simd_flags := -mavx512f -mfma
 
 #
 # version- and compiler-specific flags
@@ -148,6 +152,8 @@ cuda_base_nvcc_ldflags    :=
 cpu_omp_clang++_flags := -fopenmp
 cpu_omp_nvcc_flags := -mp
 cpu_omp_nvc++_flags := -mp
+
+cpu_simd_clang++_flags := -fvectorize
 
 #
 # you are unlikely to change anything below
