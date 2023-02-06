@@ -230,7 +230,7 @@ struct Convolution2D {
     idx_t B = x.n0;             // batch size
     y.set_n0(B);
     x_ptr = &x;                 // save pointer to input for backward
-    #pragma omp parallel for collapse(4)
+    #pragma omp parallel for schedule(static),collapse(4)
     for (idx_t s = 0; s < B; s++) {       // for each sample
       for (idx_t oc = 0; oc < OC; oc++) { // for each output channel
         for (idx_t i = 0; i < H - K + 1; i++) {   // for each output pixel
@@ -407,7 +407,7 @@ struct Convolution2D {
     gb.set_n0(OC);
     gx.set_n0(B);
     tensor<real,maxB,IC,H,W>& x = *x_ptr;
-    #pragma omp parallel for collapse(4)
+    #pragma omp parallel for schedule(dynamic),collapse(4)
     for (idx_t oc = 0; oc < OC; oc++) {   // output channel
       for (idx_t ic = 0; ic < IC; ic++) { // input channel
         for (idx_t di = 0; di < K; di++) { // kernel pixel
@@ -425,7 +425,7 @@ struct Convolution2D {
         }
       }
     }
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for (idx_t oc = 0; oc < OC; oc++) {
       real v = 0.0;
       for (idx_t s = 0; s < B; s++) {
@@ -437,7 +437,7 @@ struct Convolution2D {
       }
       gb(oc) = v;
     }
-    #pragma omp parallel for collapse(4)
+    #pragma omp parallel for schedule(dynamic),collapse(4)
     for (idx_t s = 0; s < B; s++) {
       for (idx_t ic = 0; ic < IC; ic++) {
         for (idx_t i = 0; i < H; i++) {
