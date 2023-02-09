@@ -153,7 +153,7 @@ cpu_omp_clang++_flags := -fopenmp
 cpu_omp_nvcc_flags := -mp
 cpu_omp_nvc++_flags := -mp
 
-cpu_simd_clang++_flags := -fopenmp -fvectorize
+cpu_simd_clang++_flags := -fopenmp -fvectorize #-Rpass-missed=loop-vectorize -Rpass=loop-vectorize
 
 #
 # you are unlikely to change anything below

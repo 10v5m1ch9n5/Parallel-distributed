@@ -3,3 +3,4 @@ mnist.log
 setup_compilers.sh
 .ipynb_checkpoints/
 make.err
+*.elf

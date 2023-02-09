@@ -10,6 +10,7 @@
 #define ARRAY_INDEX_CHECK 1
 #endif
 #include "mnist_util.h"
+#include <x86intrin.h>
 
 /**
    @brief aux function for array bounds checking
@@ -102,6 +103,11 @@ struct tensor {
     range_chk(0, i3, N3);
     return w[i0][i1][i2][i3];
   }
+  
+  __m512 V(idx_t i0, idx_t i1, idx_t i2, idx_t i3) {
+    return *((__m512*)&w[i0][i1][i2][i3]);
+  }
+  
   /**
      @brief set the number of elements along the first dimension
      @param (N) the number of elements specified
