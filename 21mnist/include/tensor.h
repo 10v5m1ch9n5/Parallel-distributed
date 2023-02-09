@@ -105,7 +105,21 @@ struct tensor {
   }
   
   __m512 V(idx_t i0, idx_t i1, idx_t i2, idx_t i3) {
-    return *((__m512*)&w[i0][i1][i2][i3]);
+    int total_array_size = sizeof(w[i0][i1][i2])/sizeof(w[i0][i1][i2][0]);
+    int nb_elements_remaining = total_array_size - i3;
+    if(nb_elements_remaining < 16) { // add zero-padding if the array segment is shorter than 16
+      T arr[16];
+      for(idx_t i = 0; i < 16; i++) {
+        if(i3 + i < total_array_size) {
+          arr[i] = w[i0][i1][i2][i3+i];
+        } else {
+          arr[i] = 0;
+        }
+      }
+      return *((__m512*)&arr[0]);
+    } else {
+      return *((__m512*)&w[i0][i1][i2][i3]);
+    }
   }
   
   /**
