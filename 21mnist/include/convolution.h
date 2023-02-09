@@ -522,7 +522,10 @@ struct Convolution2D {
       real v = 0.0;
       for (idx_t s = 0; s < B; s++) {
         for (idx_t i = 0; i < H - K + 1; i++) {
-          for (idx_t j = 0; j < W - K + 1; j++) {
+          for (idx_t j = 0; j < iter16*16; j+=16) {
+            v += _mm512_reduce_add_ps(gy.V(s,oc,i,j));
+          }
+          for (idx_t j = iter16*16; j < W - K + 1; j++){
             v += gy(s,oc,i,j);
           }
         }
