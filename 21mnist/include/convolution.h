@@ -316,7 +316,7 @@ struct Convolution2D {
      @sa backward_base
   */
   __device__ __host__ 
-  void backward_base(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) {
+  void backward_base(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) { 
     idx_t B = gy.n0;
     gw.set_n0(OC);
     gb.set_n0(OC);
@@ -373,41 +373,28 @@ struct Convolution2D {
   }
   
   __device__ __host__ 
-  void backward_fast(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) {
+  void backward_fast(tensor<real,maxB,OC,H-K+1,W-K+1>& gy, idx_t & s, idx_t & i, idx_t & j) {
     idx_t B = gy.n0;
     gw.set_n0(OC);
     gb.set_n0(OC);
     gx.set_n0(B);
-    tensor<real,maxB,IC,H,W>& x = *x_ptr;
+    tensor<real,maxB,IC,H,W>& x = *x_ptr;      
     for (idx_t oc = 0; oc < OC; oc++) {   // output channel
       for (idx_t ic = 0; ic < IC; ic++) { // input channel
         for (idx_t di = 0; di < K; di++) { // kernel pixel
           for (idx_t dj = 0; dj < K; dj++) { // kernel pixel
-            real v = 0.0;
-            for (idx_t s = 0; s < B; s++) { // training samples
-              for (idx_t i = 0; i < H - K + 1; i++) { // sample pixel
-                for (idx_t j = 0; j < W - K + 1; j++) { // sample pixel
-                  v += gy(s,oc,i,j) * x(s,ic,i+di,j+dj);
-                }
-              }
-            }
-            gw(oc,ic,di,dj) = v;
+            // real v = 0.0;
+            gw(oc,ic,di,dj) += gy(s,oc,i,j)*x(s,ic,i+di,j+dj);
           }
         }
       }
     }
     for (idx_t oc = 0; oc < OC; oc++) {
       real v = 0.0;
-      for (idx_t s = 0; s < B; s++) {
-        for (idx_t i = 0; i < H - K + 1; i++) {
-          for (idx_t j = 0; j < W - K + 1; j++) {
-            v += gy(s,oc,i,j);
-          }
-        }
-      }
-      gb(oc) = v;
+      v += gy(s,oc,i,j);
+      gb(oc) += v;
     }
-    for (idx_t s = 0; s < B; s++) {
+    // for (idx_t s = 0; s < B; s++) {
       for (idx_t ic = 0; ic < IC; ic++) {
         for (idx_t i = 0; i < H; i++) {
           for (idx_t j = 0; j < W; j++) {
@@ -422,11 +409,11 @@ struct Convolution2D {
                 }
               }
             }
-            gx(s,ic,i,j) = v;
+            gx(s,ic,i,j) += v;
           }
         }
       }
-    }
+    // }
   }
   
   /**
@@ -444,8 +431,8 @@ struct Convolution2D {
   }
   
   __device__
-  void backward_cuda_fast_device(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) {
-    backward_fast(gy);
+  void backward_cuda_fast_device(tensor<real,maxB,OC,H-K+1,W-K+1>& gy, idx_t & s, idx_t & i, idx_t & j) {
+    backward_fast(gy,s,i,j);
   }
   
   /**
@@ -468,7 +455,10 @@ struct Convolution2D {
   
   void backward_cuda_fast(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) {
 #if __CUDACC__
-    launch_and_sync((backward_cuda_fast_global<<<1,1>>>(dev, gy.dev)));
+    dim3 nb(8, 8, 8);
+    // std::cout << "B=" << sizeof(gy.w)/sizeof(gy.w[0]) << "\nH-K+1=" << H-K+1 << "\nW-K+1=" << W-K+1 << std::endl;
+    dim3 tpb(8,4,4);
+    launch_and_sync((backward_cuda_fast_global<<<nb,tpb>>>(dev, gy.dev)));
 #else
     (void)gy;
     err_cuda_code_non_cuda_compiler(opt.algo_s);

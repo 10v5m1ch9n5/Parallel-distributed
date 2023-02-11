@@ -40,7 +40,7 @@ vers += cuda_fast
 # is HUGE)
 #
 flags :=
-#flags += -O0
+#flags += -O0 -g
 flags += -O3
 flags += -DMAX_BATCH_SIZE=64
 flags += -DARRAY_INDEX_CHECK=0
