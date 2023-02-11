@@ -215,6 +215,11 @@ __global__ void backward_cuda_base_global(T* dev, O* gy_dev) {
   dev->backward_cuda_base_device(*gy_dev);
 }
 
+template<typename T, typename O>
+__global__ void backward_cuda_fast_global(T* dev, O* gy_dev) {
+  dev->backward_cuda_fast_device(*gy_dev);
+}
+
 template<typename T, typename O, typename I1>
 __global__ void backward_cuda_base_global(T* dev, O* gy_dev, I1* t_dev) {
   dev->backward_cuda_base_device(*gy_dev, *t_dev);

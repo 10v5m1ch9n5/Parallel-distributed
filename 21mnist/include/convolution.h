@@ -9,6 +9,8 @@
 #include "ada_delta.h"
 #include "grad_check.h"
 
+#include <iostream>
+
 /**
    @brief configuration data for Convolution2D
    @details no configuration currently exist
@@ -369,6 +371,64 @@ struct Convolution2D {
       }
     }
   }
+  
+  __device__ __host__ 
+  void backward_fast(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) {
+    idx_t B = gy.n0;
+    gw.set_n0(OC);
+    gb.set_n0(OC);
+    gx.set_n0(B);
+    tensor<real,maxB,IC,H,W>& x = *x_ptr;
+    for (idx_t oc = 0; oc < OC; oc++) {   // output channel
+      for (idx_t ic = 0; ic < IC; ic++) { // input channel
+        for (idx_t di = 0; di < K; di++) { // kernel pixel
+          for (idx_t dj = 0; dj < K; dj++) { // kernel pixel
+            real v = 0.0;
+            for (idx_t s = 0; s < B; s++) { // training samples
+              for (idx_t i = 0; i < H - K + 1; i++) { // sample pixel
+                for (idx_t j = 0; j < W - K + 1; j++) { // sample pixel
+                  v += gy(s,oc,i,j) * x(s,ic,i+di,j+dj);
+                }
+              }
+            }
+            gw(oc,ic,di,dj) = v;
+          }
+        }
+      }
+    }
+    for (idx_t oc = 0; oc < OC; oc++) {
+      real v = 0.0;
+      for (idx_t s = 0; s < B; s++) {
+        for (idx_t i = 0; i < H - K + 1; i++) {
+          for (idx_t j = 0; j < W - K + 1; j++) {
+            v += gy(s,oc,i,j);
+          }
+        }
+      }
+      gb(oc) = v;
+    }
+    for (idx_t s = 0; s < B; s++) {
+      for (idx_t ic = 0; ic < IC; ic++) {
+        for (idx_t i = 0; i < H; i++) {
+          for (idx_t j = 0; j < W; j++) {
+            real v = 0.0;
+            for (idx_t oc = 0; oc < OC; oc++) {
+              for (idx_t di = 0; di < K; di++) {
+                for (idx_t dj = 0; dj < K; dj++) {
+                  if (0 <= i - di && i - di < H - K + 1
+                      && 0 <= j - dj && j - dj < W - K + 1) {
+                    v += gy(s,oc,i-di,j-dj) * w(oc,ic,di,dj);
+                  }
+                }
+              }
+            }
+            gx(s,ic,i,j) = v;
+          }
+        }
+      }
+    }
+  }
+  
   /**
      @brief the device function of backward called from the 
      global (non-member) function
@@ -382,6 +442,12 @@ struct Convolution2D {
   void backward_cuda_base_device(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) {
     backward_base(gy);
   }
+  
+  __device__
+  void backward_cuda_fast_device(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) {
+    backward_fast(gy);
+  }
+  
   /**
      @brief a cuda version of baseline code called from the 
      entry function (backward)
@@ -399,6 +465,16 @@ struct Convolution2D {
     err_cuda_code_non_cuda_compiler(opt.algo_s);
 #endif
   }
+  
+  void backward_cuda_fast(tensor<real,maxB,OC,H-K+1,W-K+1>& gy) {
+#if __CUDACC__
+    launch_and_sync((backward_cuda_fast_global<<<1,1>>>(dev, gy.dev)));
+#else
+    (void)gy;
+    err_cuda_code_non_cuda_compiler(opt.algo_s);
+#endif
+  }
+  
   /**
      @brief a cpu version of baseline code called from the 
      entry function (backward)
@@ -434,6 +510,8 @@ struct Convolution2D {
       backward_cpu_base(gy); break;
     case algo_cuda_base:
       backward_cuda_base(gy); break;
+    case algo_cuda_fast:
+      backward_cuda_fast(gy); break;
     default:
       if (opt.cuda_algo) {
         backward_cuda_base(gy);

@@ -86,7 +86,7 @@ typedef enum {
   /* algo_cpu_omp */
   /* algo_cpu_simd_omp? */
   /* algo_cpu_fast? */
-  /* algo_cuda_fast? */
+  algo_cuda_fast,
   /* algo_cpu_super_fast? */
   /* algo_cuda_super_fast? */
   
@@ -107,6 +107,8 @@ static algo_t parse_algo(const char * s) {
        } else if (strcmp(s, "cpu_fast") == 0) {
        return algo_cpu_fast;
     */
+  } else if (strcmp(s, "cuda_fast") == 0) {
+      return algo_cuda_fast;
   } else {
     return algo_invalid;
   }
