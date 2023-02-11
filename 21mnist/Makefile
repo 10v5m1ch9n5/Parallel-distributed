@@ -26,9 +26,9 @@
 #   for specific compilers
 #
 vers :=
-vers += cpu_base
-vers += cuda_base
-#vers += fast
+#vers += cpu_base
+#vers += cuda_base
+vers += cuda_fast
 
 #
 # C++ compiler flags
@@ -95,7 +95,7 @@ nvcc_ldflags :=
 
 cpu_base_cxx := clang++
 cuda_base_cxx := nvcc
-fast_cxx := clang++
+cuda_fast_cxx := nvcc
 
 #
 # toplevel C++ file of each version
@@ -104,7 +104,7 @@ fast_cxx := clang++
 
 cpu_base_cc := mnist.cc
 cuda_base_cc := mnist.cc
-fast_cc := mnist.cc
+cuda_fast_cc := mnist.cc
 
 #
 # version-specific flags
